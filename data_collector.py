@@ -440,8 +440,24 @@ def _domain_to_isim(domain: str) -> str:
     return " ".join(p.capitalize() for p in parca if p).strip()
 
 
+def _place_details(place_id: str, api_key: str) -> Dict:
+    """Place ID ile detayları çek: telefon, çalışma saati, puan, adres."""
+    url = "https://maps.googleapis.com/maps/api/place/details/json"
+    fields = ("name,place_id,formatted_address,formatted_phone_number,"
+              "international_phone_number,rating,user_ratings_total,"
+              "geometry,types,opening_hours,website,url")
+    try:
+        r = requests.get(url, params={"place_id": place_id, "fields": fields,
+                                      "key": api_key, "language": "tr"}, timeout=15)
+        r.raise_for_status()
+        return r.json().get("result", {}) or {}
+    except Exception as e:
+        print(f"  ⚠ Place Details hatası: {e}")
+        return {}
+
+
 def _places_textsearch(query: str, api_key: str) -> Dict:
-    """Tek bir textsearch sorgusu çalıştır, ilk makul sonucu döndür."""
+    """Tek textsearch sorgusu + Place Details ile zenginleştir."""
     if not query.strip():
         return {}
     url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
@@ -457,17 +473,26 @@ def _places_textsearch(query: str, api_key: str) -> Dict:
     if not results:
         return {}
     first = results[0]
-    loc = first.get("geometry", {}).get("location", {})
+    pid = first.get("place_id")
+
+    # Place Details ile detayları çek (telefon, çalışma saati, kesin puan)
+    detay = _place_details(pid, api_key) if pid else {}
+    loc = (detay.get("geometry") or first.get("geometry", {})).get("location", {})
+
     return {
-        "name":          first.get("name"),
-        "place_id":      first.get("place_id"),
-        "address":       first.get("formatted_address"),
-        "rating":        first.get("rating"),
-        "user_ratings_total": first.get("user_ratings_total"),
-        "lat":           loc.get("lat"),
-        "lng":           loc.get("lng"),
-        "types":         first.get("types", []),
-        "opening_hours": first.get("opening_hours", {}),
+        "name":               detay.get("name") or first.get("name"),
+        "place_id":           pid,
+        "address":            detay.get("formatted_address") or first.get("formatted_address"),
+        "phone":              detay.get("formatted_phone_number"),
+        "phone_intl":         detay.get("international_phone_number"),
+        "website":            detay.get("website"),
+        "maps_url":           detay.get("url"),
+        "rating":             detay.get("rating") if detay.get("rating") is not None else first.get("rating"),
+        "user_ratings_total": detay.get("user_ratings_total") if detay.get("user_ratings_total") is not None else first.get("user_ratings_total"),
+        "lat":                loc.get("lat"),
+        "lng":                loc.get("lng"),
+        "types":              detay.get("types") or first.get("types", []),
+        "opening_hours":      detay.get("opening_hours") or first.get("opening_hours", {}),
     }
 
 
