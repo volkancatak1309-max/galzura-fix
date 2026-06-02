@@ -109,7 +109,12 @@ Google'da görünürlük açısından eksikleri ve güçlü yanları bul.
   "eksikler": [{"konu": "kısa başlık (3-5 kelime)", "aciklama": "neden önemli, EN FAZLA 2 kısa cümle, basit dil", "oncelik": "yuksek/orta/dusuk"}],
   "guclu_yanlar": [{"konu": "kısa başlık", "aciklama": "1 kısa cümle"}]
 }
-En fazla 5 eksik, 2 güçlü yan. Sadece JSON. Gerçek veriye dayan. İngilizce terim yok."""
+YENI VERILERI YORUMLA:
+- paylasim_karti_var True ise: WhatsApp/Facebook'ta link paylasilinca resimli kart cikar (GUCLU YAN, "olumlu"). False ise eksik (link paylasiminda cirkin gorunur).
+- canonical_var True ise olumlu (Google hangi adresin asil oldugunu biliyor). False ise eksik.
+- indexlenebilir False ise ÇOK KRITIK EKSIK (site Google'a "beni gosterme" diyor, hic gorunmez). True ise olumlu, bunu eksik diye yazma.
+- meta_description bos ama paylasim_basligi dolu ise: "Google tanitim yazisi (meta) eksik ama paylasim karti var" diye dengeli yaz.
+En fazla 5 eksik, 3 güçlü yan. Sadece JSON. Gerçek veriye dayan. İngilizce terim yok."""
 
 
 # ─── SAYFA 5 — GEO / AI GÖRÜNÜRLÜK ───
@@ -184,6 +189,7 @@ Galzura'nın sunabileceği işler:
   Firma orada yoksa yeni nesil alıcılar onu hiç görmüyor, bu kayıp kalıcı hale geliyor.
 - Doktor tonu: sakin, kesin, teşhis koyan. ASLA "Galzura'yı seçin" deme.
 - UYDURMA vaat YASAK ("3 ayda 1 numara", "ayda 50 müşteri" YASAK).
+- SEHIR UYDURMA YASAK: Ornek arama yazarken SADECE veride verilen "sehir" alanini kullan. Berlin, Viyana gibi baska sehir ASLA yazma. Sehir veride neyse o.
 
 ÇIKTI FORMATI: JSON döndür:
 {

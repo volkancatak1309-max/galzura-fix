@@ -224,6 +224,10 @@ def test_god_verisi_hazirla(veri: Dict, sektor_bilgisi: Dict,
                 "viewport": html.get("viewport",""),
                 "analytics": {k:v for k,v in html.get("analytics",{}).items()},
                 "sitemap_url_sayisi": veri.get("robots_sitemap",{}).get("sitemap_url_count","bilinmiyor"),
+                "paylasim_karti_var": bool(html.get("og_tags",{}).get("image")),
+                "paylasim_basligi": html.get("og_tags",{}).get("title",""),
+                "canonical_var": bool(html.get("canonical")),
+                "indexlenebilir": "noindex" not in (html.get("robots_meta","") or "").lower(),
             }
         }
         seo = claude_json(PROMPT_SEO,
@@ -272,6 +276,7 @@ def test_god_verisi_hazirla(veri: Dict, sektor_bilgisi: Dict,
     try:
         cozum_data = {
             "firma": firma_adi, "sektor_baglam": baglam, "skor": skor,
+            "sehir": (places.get("address","").split(",")[-2].strip() if places.get("address") and "," in places.get("address","") else sehir),
             "eksikler_ozet": {
                 "schema": html.get("schema_blocks",0)==0,
                 "hreflang": len(html.get("hreflang_tags",[]))==0,
