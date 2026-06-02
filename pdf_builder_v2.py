@@ -70,6 +70,7 @@ def wrap(text, font, size, max_w):
 
 def onem_renk(onem):
     o = (onem or "").lower()
+    if o in ("olumlu", "pozitif", "iyi", "guclu", "güçlü", "good", "positive"): return GREEN, GREEN_BG, "OLUMLU"
     if o in ("yuksek", "yüksek", "high"): return RED, RED_BG, "YÜKSEK"
     if o in ("orta", "medium"):           return AMBER, AMBER_BG, "ORTA"
     return GREY, GREY_BG, "DÜŞÜK"
