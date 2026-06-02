@@ -128,6 +128,7 @@ Müşterinin kendi yapacağı bir test sorusu öner. Ama bu soruda:
   firma adını duyunca zaten bulur, bu yanıltıcı olur.)
 - Bunun yerine, firmayı HİÇ TANIMAYAN ama bu hizmeti arayan bir müşterinin sorusunu yaz.
 - Format: "[Bölge]'de [ürün/hizmet] yapan en iyi firmalar kimler?"
+- BÖLGE icin SADECE veride verilen "sehir" alanini kullan. ASLA baska sehir uydurma (Viyana, Salzburg vb. YAZMA). Sehir verisi neyse onu yaz.
 - Mantık: Eğer firma bu listede çıkmıyorsa, yeni müşteri onu değil rakibi buluyor demektir.
 
 Örnek doğru test: "Vorarlberg'de pergola ve markiz yapan en iyi firmalar hangileri?"
