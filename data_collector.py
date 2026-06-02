@@ -440,24 +440,8 @@ def _domain_to_isim(domain: str) -> str:
     return " ".join(p.capitalize() for p in parca if p).strip()
 
 
-def _place_details(place_id: str, api_key: str) -> Dict:
-    """Place ID ile detayları çek: telefon, çalışma saati, puan, adres."""
-    url = "https://maps.googleapis.com/maps/api/place/details/json"
-    fields = ("name,place_id,formatted_address,formatted_phone_number,"
-              "international_phone_number,rating,user_ratings_total,"
-              "geometry,types,opening_hours,website,url")
-    try:
-        r = requests.get(url, params={"place_id": place_id, "fields": fields,
-                                      "key": api_key, "language": "tr"}, timeout=15)
-        r.raise_for_status()
-        return r.json().get("result", {}) or {}
-    except Exception as e:
-        print(f"  ⚠ Place Details hatası: {e}")
-        return {}
-
-
 def _places_textsearch(query: str, api_key: str) -> Dict:
-    """Tek textsearch sorgusu + Place Details ile zenginleştir."""
+    """Tek bir textsearch sorgusu çalıştır, ilk makul sonucu döndür."""
     if not query.strip():
         return {}
     url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
@@ -473,26 +457,17 @@ def _places_textsearch(query: str, api_key: str) -> Dict:
     if not results:
         return {}
     first = results[0]
-    pid = first.get("place_id")
-
-    # Place Details ile detayları çek (telefon, çalışma saati, kesin puan)
-    detay = _place_details(pid, api_key) if pid else {}
-    loc = (detay.get("geometry") or first.get("geometry", {})).get("location", {})
-
+    loc = first.get("geometry", {}).get("location", {})
     return {
-        "name":               detay.get("name") or first.get("name"),
-        "place_id":           pid,
-        "address":            detay.get("formatted_address") or first.get("formatted_address"),
-        "phone":              detay.get("formatted_phone_number"),
-        "phone_intl":         detay.get("international_phone_number"),
-        "website":            detay.get("website"),
-        "maps_url":           detay.get("url"),
-        "rating":             detay.get("rating") if detay.get("rating") is not None else first.get("rating"),
-        "user_ratings_total": detay.get("user_ratings_total") if detay.get("user_ratings_total") is not None else first.get("user_ratings_total"),
-        "lat":                loc.get("lat"),
-        "lng":                loc.get("lng"),
-        "types":              detay.get("types") or first.get("types", []),
-        "opening_hours":      detay.get("opening_hours") or first.get("opening_hours", {}),
+        "name":          first.get("name"),
+        "place_id":      first.get("place_id"),
+        "address":       first.get("formatted_address"),
+        "rating":        first.get("rating"),
+        "user_ratings_total": first.get("user_ratings_total"),
+        "lat":           loc.get("lat"),
+        "lng":           loc.get("lng"),
+        "types":         first.get("types", []),
+        "opening_hours": first.get("opening_hours", {}),
     }
 
 
@@ -573,7 +548,9 @@ def veri_topla(url: str, psi_key: str, places_key: str = "",
     # 6. Places (firma + ipucu)
     print("  6/6  Google Places...")
     firma_adi_kullan = firma_adi_ipucu or veri["html_analysis"].get("title", "").split("|")[0].split("–")[0].strip()
-    veri["places_firma"] = places_firma_bul(firma_adi_kullan, sehir_ipucu, places_key, domain) if places_key else {}
+    sehir_kullan = sehir_ipucu or sehir_html_cikar(html) or "Österreich"
+    veri["lokasyon_ipucu"] = sehir_kullan
+    veri["places_firma"] = places_firma_bul(firma_adi_kullan, sehir_kullan, places_key, domain) if places_key else {}
 
     # Hack tespit özet
     spam_kw = veri["html_analysis"]["hack_signals"]["spam_keywords_found"]
@@ -616,3 +593,17 @@ if __name__ == "__main__":
     print(f"  Stack: {[k for k,v in h.get('stack', {}).items() if v]}")
     print(f"  Analytics: {[k for k,v in h.get('analytics', {}).items() if v]}")
     print(f"  Hack: {veri['hack_summary']['severity']}")
+
+
+def sehir_html_cikar(html: str) -> str:
+    """HTML'den 'PLZ Sehir' paternini cikarir (orn. '6800 Feldkirch').
+    Bulamazsa bos doner."""
+    import re as _re
+    from collections import Counter
+    if not html:
+        return ""
+    eslesme = _re.findall(r'\b([0-9]{4})\s+([A-ZAOU][a-zaouA-ZAOU\.\- ]{2,30})', html)
+    if not eslesme:
+        return ""
+    sayac = Counter(f"{plz} {sehir.strip()}" for plz, sehir in eslesme)
+    return sayac.most_common(1)[0][0]
