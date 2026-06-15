@@ -50,9 +50,18 @@ CLOAKING_PATTERNS = [
 
 
 def _safe_get(url: str, timeout: int = 12) -> Optional[requests.Response]:
-    """Güvenli GET — hata durumunda None döner."""
+    """Güvenli GET — hata durumunda None döner. SSL hatasinda dogrulamasiz tekrar dener."""
     try:
         return requests.get(url, headers=HEADERS, timeout=timeout, allow_redirects=True)
+    except requests.exceptions.SSLError:
+        try:
+            import urllib3
+            urllib3.disable_warnings()
+            print(f"  ⚠ SSL dogrulama atlandi: {url}")
+            return requests.get(url, headers=HEADERS, timeout=timeout, allow_redirects=True, verify=False)
+        except Exception as e:
+            print(f"  ⚠ GET hatası ({url}): {e}")
+            return None
     except Exception as e:
         print(f"  ⚠ GET hatası ({url}): {e}")
         return None
@@ -553,9 +562,10 @@ def veri_topla(url: str, psi_key: str, places_key: str = "",
     veri["places_firma"] = places_firma_bul(firma_adi_kullan, sehir_kullan, places_key, domain) if places_key else {}
 
     # Hack tespit özet
-    spam_kw = veri["html_analysis"]["hack_signals"]["spam_keywords_found"]
-    cloaking = veri["html_analysis"]["hack_signals"]["cloaking_detected"]
-    spam_sitemap = veri["robots_sitemap"]["sitemap_spam_count"]
+    _hs = veri["html_analysis"].get("hack_signals", {}) or {}
+    spam_kw = _hs.get("spam_keywords_found", [])
+    cloaking = _hs.get("cloaking_detected", False)
+    spam_sitemap = (veri.get("robots_sitemap", {}) or {}).get("sitemap_spam_count", 0)
     veri["hack_summary"] = {
         "is_hacked": bool(spam_kw) and (cloaking or spam_sitemap > 0),
         "html_spam_keywords": spam_kw,
